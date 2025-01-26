@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from numpy import isnan
 from pandas import DataFrame
 from pandas_ta.overlap import hlc3, ma
 from pandas_ta.utils import get_drift, get_offset, signed_series, verify_series
@@ -19,13 +20,38 @@ def kvo(high, low, close, volume, fast=None, slow=None, signal=None, mamode=None
     drift = get_drift(drift)
     offset = get_offset(offset)
 
-    if high is None or low is None or close is None or volume is None: return
+    if high is None or low is None or close is None or volume is None:
+        return
 
-    # Calculate Result
-    signed_volume = volume * signed_series(hlc3(high, low, close), 1)
-    sv = signed_volume.loc[signed_volume.first_valid_index():,]
-    kvo = ma(mamode, sv, length=fast) - ma(mamode, sv, length=slow)
-    kvo_signal = ma(mamode, kvo.loc[kvo.first_valid_index():,], length=signal)
+    # Calculate Trend (T) and Trend groups (dtrend)
+    trend = signed_series(hlc3(high, low, close), 1)
+    dtrend = trend.diff().ne(0).cumsum()
+
+    # Calculate the Daily Measurement (dm)
+    dm = high - low
+
+    # Calculate the Cumulative Measurement (cm)
+    df = DataFrame({'dtrend': dtrend, 'dm': dm})
+    df['dm_cumsum'] = df.groupby('dtrend')['dm'].cumsum()
+    mask = df['dtrend'].ne(df['dtrend'].shift())
+    df.loc[mask, 'previous_dm'] = df['dm'].shift()
+    df['previous_dm'] = df['previous_dm'].ffill()
+    cm = df['dm_cumsum'].add(df['previous_dm'], fill_value=0)
+
+    # Avoid division by zero by adding a small number to 'cm' where it's zero
+    cm += cm.where(cm == 0, 1e-10)
+
+    # Calculate the Volume Force (VF)
+    vf = volume * (-2 * ((dm / cm) - 1)) * trend * 100
+
+    kvo = ma(mamode, vf, length=fast, **kwargs) - ma(mamode, vf, length=slow, **kwargs)
+    kvo_signal = ma(mamode, kvo.loc[kvo.first_valid_index():,], length=signal, **kwargs)
+
+    if kvo is None or all(isnan(kvo.values)):
+        return  # Emergency Break
+
+    if kvo_signal is None or all(isnan(kvo_signal.values)):
+        return  # Emergency Break
 
     # Offset
     if offset != 0:
@@ -41,7 +67,7 @@ def kvo(high, low, close, volume, fast=None, slow=None, signal=None, mamode=None
         kvo_signal.fillna(method=kwargs["fill_method"], inplace=True)
 
     # Name and Categorize it
-    _props = f"_{fast}_{slow}_{signal}"
+    _props = f"_{fast}_{slow}_{signal}_{mamode}"
     kvo.name = f"KVO{_props}"
     kvo_signal.name = f"KVOs{_props}"
     kvo.category = kvo_signal.category = "volume"
