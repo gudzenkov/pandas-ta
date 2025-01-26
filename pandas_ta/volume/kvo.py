@@ -35,7 +35,7 @@ def kvo(high, low, close, volume, fast=None, slow=None, signal=None, mamode=None
     df['dm_cumsum'] = df.groupby('dtrend')['dm'].cumsum()
     mask = df['dtrend'].ne(df['dtrend'].shift())
     df.loc[mask, 'previous_dm'] = df['dm'].shift()
-    df['previous_dm'].ffill(inplace=True)
+    df['previous_dm'] = df['previous_dm'].ffill()
     cm = df['dm_cumsum'].add(df['previous_dm'], fill_value=0)
 
     # Avoid division by zero by adding a small number to 'cm' where it's zero
