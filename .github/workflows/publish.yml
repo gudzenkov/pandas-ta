@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-22.04
     environment:
       name: release
-      url: https://pypi.org/p/ft-scikit-optimize
+      url: https://pypi.org/p/ft-pandas-ta
     permissions:
       id-token: write
     steps:
