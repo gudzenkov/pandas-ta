@@ -35,7 +35,7 @@ def kvo(high, low, close, volume, fast=None, slow=None, signal=None, mamode=None
     df['dm_cumsum'] = df.groupby('dtrend')['dm'].cumsum()
     mask = df['dtrend'].ne(df['dtrend'].shift())
     df.loc[mask, 'previous_dm'] = df['dm'].shift()
-    df['previous_dm'].ffill(inplace=True)
+    df['previous_dm'] = df['previous_dm'].ffill()
     cm = df['dm_cumsum'].add(df['previous_dm'], fill_value=0)
 
     # Avoid division by zero by adding a small number to 'cm' where it's zero
@@ -44,8 +44,8 @@ def kvo(high, low, close, volume, fast=None, slow=None, signal=None, mamode=None
     # Calculate the Volume Force (VF)
     vf = volume * (-2 * ((dm / cm) - 1)) * trend * 100
 
-    kvo = ma(mamode, vf, length=fast, **kwargs) - ma(mamode, vf, length=slow)
-    kvo_signal = ma(mamode, kvo.loc[kvo.first_valid_index():,], length=signal)
+    kvo = ma(mamode, vf, length=fast, **kwargs) - ma(mamode, vf, length=slow, **kwargs)
+    kvo_signal = ma(mamode, kvo.loc[kvo.first_valid_index():,], length=signal, **kwargs)
 
     if kvo is None or all(isnan(kvo.values)):
         return  # Emergency Break
@@ -67,7 +67,7 @@ def kvo(high, low, close, volume, fast=None, slow=None, signal=None, mamode=None
         kvo_signal.fillna(method=kwargs["fill_method"], inplace=True)
 
     # Name and Categorize it
-    _props = f"_{fast}_{slow}_{signal}"
+    _props = f"_{fast}_{slow}_{signal}_{mamode}"
     kvo.name = f"KVO{_props}"
     kvo_signal.name = f"KVOs{_props}"
     kvo.category = kvo_signal.category = "volume"
