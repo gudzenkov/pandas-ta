@@ -5,6 +5,7 @@ from .dema import dema
 from .ema import ema
 from .fwma import fwma
 from .hma import hma
+from .jma import jma
 from .linreg import linreg
 from .midpoint import midpoint
 from .pwma import pwma
@@ -44,11 +45,11 @@ def ma(name:str = None, source:Series = None, **kwargs) -> Series:
     """
 
     _mas = [
-        "dema", "ema", "fwma", "hma", "linreg", "midpoint", "pwma", "rma",
+        "dema", "ema", "fwma", "hma", 'jma', "linreg", "midpoint", "pwma", "rma",
         "sinwma", "sma", "swma", "t3", "tema", "trima", "vidya", "wma", "zlma"
     ]
     if name is None and source is None:
-        return _mas
+        return None
     elif isinstance(name, str) and name.lower() in _mas:
         name = name.lower()
     else: # "ema"
@@ -57,6 +58,7 @@ def ma(name:str = None, source:Series = None, **kwargs) -> Series:
     if   name == "dema": return dema(source, **kwargs)
     elif name == "fwma": return fwma(source, **kwargs)
     elif name == "hma": return hma(source, **kwargs)
+    elif name == "jma": return jma(source, **kwargs)
     elif name == "linreg": return linreg(source, **kwargs)
     elif name == "midpoint": return midpoint(source, **kwargs)
     elif name == "pwma": return pwma(source, **kwargs)
