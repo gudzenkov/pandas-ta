@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from numpy import isnan
 from pandas import DataFrame
 from pandas_ta.overlap import hlc3, ma
@@ -38,8 +37,8 @@ def kvo(high, low, close, volume, fast=None, slow=None, signal=None, mamode=None
     df['previous_dm'] = df['previous_dm'].ffill()
     cm = df['dm_cumsum'].add(df['previous_dm'], fill_value=0)
 
-    # Avoid division by zero by adding a small number to 'cm' where it's zero
-    cm += cm.where(cm == 0, 1e-10)
+    # Avoid division by zero when flat candles produce a zero cumulative measurement.
+    cm = cm.mask(cm == 0, 1e-10)
 
     # Calculate the Volume Force (VF)
     vf = volume * (-2 * ((dm / cm) - 1)) * trend * 100
